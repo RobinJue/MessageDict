@@ -375,13 +375,23 @@ def create_github_release(repo, tag, name, body, token, asset_paths=None):
 def commit_and_push(commit_message):
     """Commit changes and push to git."""
     print("💾 Committing changes...")
-    # Add all files except .secrets (which should be in .gitignore)
-    # First, ensure .secrets is not tracked
+    
+    # Ensure .secrets is not tracked and remove from index if needed
     run_command(f"git rm --cached {SECRETS_FILE} 2>/dev/null || true", check=False)
+    
     # Add all files (gitignore should exclude .secrets)
     run_command("git add .")
+    
     # Double-check: explicitly reset .secrets if it was accidentally added
     run_command(f"git reset HEAD {SECRETS_FILE} 2>/dev/null || true", check=False)
+    
+    # Check if .secrets is still staged (shouldn't be, but verify)
+    staged_files = run_command("git diff --cached --name-only", check=False)
+    if SECRETS_FILE in staged_files:
+        print(f"⚠️  Warning: {SECRETS_FILE} was staged. Removing it...")
+        run_command(f"git reset HEAD {SECRETS_FILE}")
+    
+    # Verify .secrets is not in the commit
     run_command(f'git commit -m "{commit_message}"')
     
     # Get current branch
@@ -390,6 +400,15 @@ def commit_and_push(commit_message):
         current_branch = "main"
     
     print(f"📤 Pushing to git (branch: {current_branch})...")
+    
+    # Check if .secrets is in the current commit and remove it if needed
+    commit_files = run_command("git diff-tree --no-commit-id --name-only -r HEAD", check=False)
+    if SECRETS_FILE in commit_files:
+        print(f"⚠️  {SECRETS_FILE} found in commit. Removing it...")
+        run_command(f"git rm --cached {SECRETS_FILE} 2>/dev/null || true", check=False)
+        run_command(f"git reset HEAD {SECRETS_FILE} 2>/dev/null || true", check=False)
+        # Amend the commit to exclude .secrets
+        run_command("git commit --amend --no-edit")
     
     # Try to push - use subprocess directly to check return code
     result = subprocess.run(
@@ -407,6 +426,16 @@ def commit_and_push(commit_message):
             print("   Fetching and rebasing...")
             run_command("git fetch origin", check=False)
             run_command(f"git pull --rebase origin {current_branch}")
+            
+            # After rebase, check if .secrets is in the commit and remove it
+            commit_files = run_command("git diff-tree --no-commit-id --name-only -r HEAD", check=False)
+            if SECRETS_FILE in commit_files:
+                print(f"⚠️  {SECRETS_FILE} found in commit. Removing it...")
+                run_command(f"git rm --cached {SECRETS_FILE} 2>/dev/null || true", check=False)
+                run_command(f"git reset HEAD {SECRETS_FILE} 2>/dev/null || true", check=False)
+                # Amend the commit to exclude .secrets
+                run_command("git commit --amend --no-edit")
+            
             print("   Retrying push...")
             run_command(f"git push origin {current_branch}")
         else:
