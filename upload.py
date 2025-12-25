@@ -264,8 +264,49 @@ def upload_qr_to_github(repo, token, qr_path, branch="main"):
             print(f"⚠️  Failed to upload QR code: {error_msg}")
         return None
 
-def create_github_release(repo, tag, name, body, token, asset_path=None):
-    """Create a GitHub release and upload asset."""
+def get_content_type(file_path):
+    """Determine content type based on file extension."""
+    ext = os.path.splitext(file_path)[1].lower()
+    content_types = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.shortcut': 'application/x-apple-shortcut',
+        '.zip': 'application/zip',
+        '.pdf': 'application/pdf',
+    }
+    return content_types.get(ext, 'application/octet-stream')
+
+def upload_release_asset(upload_url, file_path, token):
+    """Upload a single asset to a GitHub release."""
+    if not os.path.exists(file_path):
+        print(f"⚠️  File not found: {file_path}")
+        return None
+    
+    asset_name = os.path.basename(file_path)
+    content_type = get_content_type(file_path)
+    
+    with open(file_path, 'rb') as f:
+        files = {'file': (asset_name, f, content_type)}
+        upload_response = requests.post(
+            f"{upload_url}?name={asset_name}",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": content_type
+            },
+            files=files
+        )
+    
+    if upload_response.status_code == 201:
+        print(f"✅ Asset uploaded to release: {asset_name}")
+        return upload_response.json().get('browser_download_url')
+    else:
+        print(f"⚠️  Failed to upload asset {asset_name}: {upload_response.text}")
+        return None
+
+def create_github_release(repo, tag, name, body, token, asset_paths=None):
+    """Create a GitHub release and upload assets."""
     if not token:
         print("⚠️  GITHUB_TOKEN not set. Skipping GitHub release creation.")
         return None
@@ -293,27 +334,16 @@ def create_github_release(repo, tag, name, body, token, asset_path=None):
         release_data = response.json()
         print(f"✅ Release created: {release_data['html_url']}")
         
-        # Upload asset if provided
-        if asset_path and os.path.exists(asset_path):
-            upload_url = release_data['upload_url'].split('{')[0]
-            asset_name = os.path.basename(asset_path)
+        # Upload assets if provided
+        upload_url = release_data['upload_url'].split('{')[0]
+        if asset_paths:
+            # Handle both single asset (string) and multiple assets (list)
+            if isinstance(asset_paths, str):
+                asset_paths = [asset_paths]
             
-            with open(asset_path, 'rb') as f:
-                files = {'file': (asset_name, f, 'image/png')}
-                upload_response = requests.post(
-                    f"{upload_url}?name={asset_name}",
-                    headers={
-                        "Authorization": f"Bearer {token}",
-                        "Content-Type": "image/png"
-                    },
-                    files=files
-                )
-            
-            if upload_response.status_code == 201:
-                print(f"✅ Asset uploaded to release: {asset_name}")
-                return upload_response.json().get('browser_download_url')
-            else:
-                print(f"⚠️  Failed to upload asset: {upload_response.text}")
+            for asset_path in asset_paths:
+                upload_release_asset(upload_url, asset_path, token)
+        
         return release_data['html_url']
     else:
         print(f"⚠️  Failed to create release: {response.text}")
@@ -406,7 +436,7 @@ def main():
     # Step 9: Create tag and release
     create_tag(full_tag)
     
-    # Create GitHub release (QR code already uploaded separately)
+    # Create GitHub release with both QR code and shortcut file
     if GITHUB_TOKEN:
         create_github_release(
             repo=repo,
@@ -414,7 +444,7 @@ def main():
             name=full_tag,
             body=changes,
             token=GITHUB_TOKEN,
-            asset_path=qr_code_path
+            asset_paths=[SHORTCUT_PATH]  # Upload MessageDict.shortcut as release asset
         )
     
     # Clean up temporary QR code file
