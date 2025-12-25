@@ -64,10 +64,7 @@ Once you have both apps ready, install the MessageDict shortcut.
 1. Tap the installation link above
 2. Review the shortcut actions
 3. Tap "Add Shortcut"
-4. Grant permissions for:
-   - Contacts access
-   - Messages access
-   - Claude integration
+4. Grant permissions:
 5. Add to homescreen:
 
 <img width="114" height="247" alt="Picture 1" src="https://github.com/user-attachments/assets/1141cdd8-dde2-476e-99ef-051fc323419d" />
