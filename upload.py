@@ -512,21 +512,23 @@ def main():
         print("Error: Version name, tag, and changes are required.")
         sys.exit(1)
     
-    # Create full tag name
-    full_tag = f"{version_name} {tag}"
+    # Create release name (version name + tag)
+    release_name = f"{version_name} {tag}"
     
     # Step 8: Commit and push
     commit_and_push(changes)
     
     # Step 9: Create tag and release
-    create_tag(full_tag)
+    # Use just the tag for git tag (e.g., v1.2.0)
+    create_tag(tag)
     
     # Create GitHub release with both QR code and shortcut file
+    # Use release_name for the display name (e.g., Default Messager v1.2.0)
     if GITHUB_TOKEN:
         create_github_release(
             repo=repo,
-            tag=full_tag,
-            name=full_tag,
+            tag=tag,  # Git tag is just the tag (v1.2.0)
+            name=release_name,  # Release name is full name (Default Messager v1.2.0)
             body=changes,
             token=GITHUB_TOKEN,
             asset_paths=[SHORTCUT_PATH]  # Upload MessageDict.shortcut as release asset
