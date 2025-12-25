@@ -56,7 +56,7 @@ Once you have both apps ready, install the MessageDict shortcut.
 
 **Install MessageDict:** https://www.icloud.com/shortcuts/2b5d2cc0a45a49c89bcaeb48536f6b80
 
-<img src="https://raw.githubusercontent.com/RobinJue/MessageDict/main/assets/message_dict_qr_t9_272x1.png" alt="MessageDict QR Code" width="300"/>
+<img src="https://raw.githubusercontent.com/RobinJue/MessageDict/main/assets/message_dict_qr_s6g2dcir.png" alt="MessageDict QR Code" width="300"/>
 
 
 ## Installation Steps:
