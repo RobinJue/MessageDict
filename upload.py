@@ -1,3 +1,5 @@
+#Why do something manually 5x when you can automate it in just 2 hours?
+
 import os
 import sys
 import subprocess
@@ -126,8 +128,27 @@ def pull_latest():
         response = input("Do you want to pull the latest changes? (y/n): ").strip().lower()
         if response == 'y':
             print("📥 Pulling latest version from git...")
-            run_command(f"git pull origin {current_branch}")
-            print("✅ Pulled latest changes")
+            
+            # Check for unstaged changes and stash them if needed
+            status_result = run_command("git status --porcelain", check=False)
+            has_unstaged = bool(status_result and status_result.strip())
+            
+            if has_unstaged:
+                print("   Stashing unstaged changes...")
+                run_command("git stash push -m 'Auto-stash before pull'", check=False)
+                stash_used = True
+            else:
+                stash_used = False
+            
+            try:
+                # Use --rebase to handle divergent branches
+                run_command(f"git pull --rebase origin {current_branch}")
+                print("✅ Pulled latest changes")
+            finally:
+                # Restore stashed changes if any
+                if stash_used:
+                    print("   Restoring stashed changes...")
+                    run_command("git stash pop", check=False)
         else:
             print("⏭️  Skipping pull. Continuing with current version...")
     else:
@@ -356,8 +377,37 @@ def commit_and_push(commit_message):
     print("💾 Committing changes...")
     run_command("git add .")
     run_command(f'git commit -m "{commit_message}"')
-    print("📤 Pushing to git...")
-    run_command("git push origin main || git push origin master")
+    
+    # Get current branch
+    current_branch = run_command("git branch --show-current", check=False)
+    if not current_branch:
+        current_branch = "main"
+    
+    print(f"📤 Pushing to git (branch: {current_branch})...")
+    
+    # Try to push - use subprocess directly to check return code
+    result = subprocess.run(
+        f"git push origin {current_branch}",
+        shell=True,
+        capture_output=True,
+        text=True
+    )
+    
+    if result.returncode != 0:
+        # Check if it's a rejection due to remote being ahead
+        error_output = result.stderr or result.stdout
+        if "rejected" in error_output or "fetch first" in error_output:
+            print("⚠️  Push rejected: remote has new commits")
+            print("   Fetching and rebasing...")
+            run_command("git fetch origin", check=False)
+            run_command(f"git pull --rebase origin {current_branch}")
+            print("   Retrying push...")
+            run_command(f"git push origin {current_branch}")
+        else:
+            # Other error, show it
+            print(f"❌ Error pushing to git:")
+            print(f"   {error_output}")
+            sys.exit(1)
 
 def create_tag(tag_name):
     """Create and push a git tag."""
