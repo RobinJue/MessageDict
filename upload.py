@@ -375,7 +375,13 @@ def create_github_release(repo, tag, name, body, token, asset_paths=None):
 def commit_and_push(commit_message):
     """Commit changes and push to git."""
     print("💾 Committing changes...")
+    # Add all files except .secrets (which should be in .gitignore)
+    # First, ensure .secrets is not tracked
+    run_command(f"git rm --cached {SECRETS_FILE} 2>/dev/null || true", check=False)
+    # Add all files (gitignore should exclude .secrets)
     run_command("git add .")
+    # Double-check: explicitly reset .secrets if it was accidentally added
+    run_command(f"git reset HEAD {SECRETS_FILE} 2>/dev/null || true", check=False)
     run_command(f'git commit -m "{commit_message}"')
     
     # Get current branch
