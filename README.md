@@ -54,9 +54,9 @@ Download the Claude app and complete the setup process. The app is free to use.
 
 Once you have both apps ready, install the MessageDict shortcut.
 
-**Install MessageDict:** https://www.icloud.com/shortcuts/8daba55e5d0e402ba5445b6fc4992279
+**Install MessageDict:** https://www.icloud.com/shortcuts/2b5d2cc0a45a49c89bcaeb48536f6b80
 
-<img src="https://github.com/user-attachments/assets/2b4bd6a9-6ce1-4ff6-a06c-4ae1c5748bf3" alt="MessageDict QR Code" width="300"/>
+<img src="https://raw.githubusercontent.com/RobinJue/MessageDict/main/assets/message_dict_qr_bzoiq5h0.png" alt="MessageDict QR Code" width="300"/>
 
 
 ## Installation Steps:
